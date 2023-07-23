@@ -8,7 +8,9 @@ const { GraphQLObjectType,
         GraphQLString, 
         GraphQLSchema,
         GraphQLList,
-        GraphQLNonNull } = require('graphql');
+        GraphQLNonNull,
+        GraphQLEnumType, 
+        GraphQLScalarType} = require('graphql');
         
 const { model } = require('mongoose');
 const cli = require('github-changelog-generator');
@@ -24,7 +26,7 @@ const ProjectType = new GraphQLObjectType({
         client:         {
                             type: ClientType,
                             resolve(parent, args) {
-                                return clients.findById(parent.clientId);
+                                return Client.findById(parent.clientId);
                             }
                         }
     })
@@ -67,7 +69,7 @@ const RootQuery = new GraphQLObjectType({
             type: ClientType,
             args: {id: {type: GraphQLID}},
             resolve(parent, args) {
-                return clients.findById(args.id);
+                return Client.findById(args.id);
             }
         }
     }
@@ -103,7 +105,82 @@ const mutation = new GraphQLObjectType({
                 
                 return Client.findByIdAndRemove(args.id); 
             }
-        }
+        },
+
+        addProject: {
+            type: ProjectType,
+            args: {
+                name:           { type:  GraphQLNonNull(GraphQLString)},
+                description:    { type:  GraphQLNonNull(GraphQLString)},
+                status:         { type:  new GraphQLEnumType({
+                                        name: 'ProjectStatus',
+                                        values: {
+                                            'new':      { value: 'Not Started'},
+                                            'progress': { value: 'In Progress'},
+                                            'completed':{ value: 'Completed'},
+                                        }
+                                    }),
+                                    defaultValue: 'Not Started',
+                                },
+                clientId:   { type: GraphQLNonNull(GraphQLID) },
+            },
+            resolve(parent, args) {
+                const project = new Project({
+                    name:           args.name,
+                    description:    args.description,
+                    status:         args.status,
+                    clientId:       args.clientId,
+                })
+
+                return project.save();
+            }
+        },
+
+        deleteProject: {
+            type: ProjectType,
+            args: {
+                id:  {type: GraphQLNonNull(GraphQLID)},
+            },
+            resolve(parent, args) {
+                console.log(args.id)
+                
+                return Project.findByIdAndRemove(args.id); 
+            }
+        },
+
+        updateProject: {
+            type: ProjectType,
+            args: {
+                id:             {type: GraphQLNonNull(GraphQLID)},
+                name:           {type: GraphQLString},
+                description:    {type: GraphQLString},
+                status:         {type:  new GraphQLEnumType({
+                    name: 'ProjectStatusUpdate',
+                    values: {
+                        'new':      { value: 'Not Started'},
+                        'progress': { value: 'In Progress'},
+                        'completed':{ value: 'Completed'},
+                            }
+                    }),
+                },
+            },
+            
+            resolve(parent, args) {
+                console.log(args.id)
+                
+                return Project.findByIdAndUpdate(
+                    args.id,
+                    {
+                        $set: {
+                            name:           args.name,
+                            description:    args.description,
+                            status:         args.status,
+                        }
+                    },
+                    { new: true }                                   // If not there, create a new project
+                )
+            }
+        },
     }
 })
 
