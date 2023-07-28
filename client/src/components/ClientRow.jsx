@@ -13,7 +13,7 @@ export default function ClientRow({ client }) {
     //   cache.writeQuery({
     //     query: GET_CLIENTS,
     //     data: {
-    //       clients: clients.filter((client) => client.id !== deleteClient.id),
+    //       clients: clients.filter((client) => client.id !== deleteClient.id),  
     //     },
     //   });
     // },
